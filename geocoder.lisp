@@ -34,7 +34,7 @@
 
 (defclass osm-geocoder (geocoder)
   ((endpoint :initarg :endpoint :reader endpoint))
-  (:default-initargs :endpoint "http://nominatim.openstreetmap.org"))
+  (:default-initargs :endpoint "https://nominatim.openstreetmap.org"))
 
 (defmethod search-endpoint ((geocoder osm-geocoder))
   (concatenate 'string (endpoint geocoder) "/search"))
