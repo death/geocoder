@@ -94,7 +94,7 @@
   (let ((json (parse-json response)))
     (if (vectorp json)
         (map 'list #'parse-place json)
-        (parse-place json))))
+        (list (parse-place json)))))
 
 (defun parse-place (raw-place)
   (let ((place (make-instance 'place :raw raw-place)))
