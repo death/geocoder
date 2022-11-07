@@ -74,7 +74,10 @@
            do (write-string prefix out)
               (write-string (string-downcase key) out)
               (write-string "=" out)
-              (write-string (url-encode (princ-to-string value)
+              (write-string (url-encode (typecase value
+                                          (string value)
+                                          (double-float (format nil "~F" value))
+                                          (t (princ-to-string value)))
                                         :space-to-plus t)
                             out)))))
 
@@ -103,9 +106,9 @@
             do (cond ((equal key "display_name")
                       (setf name value))
                      ((equal key "lat")
-                      (setf lat (parse-number value)))
+                      (setf lat (parse-number value :float-format 'double-float)))
                      ((equal key "lon")
-                      (setf lon (parse-number value))))))
+                      (setf lon (parse-number value :float-format 'double-float))))))
     place))
 
 (defmethod reverse-geocode ((geocoder osm-geocoder) query)
