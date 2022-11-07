@@ -4,31 +4,50 @@
 
 (defpackage #:geocoder/geocoder
   (:use #:cl)
-  (:import-from #:dexador)
-  (:import-from #:quri
-                #:url-encode)
-  (:import-from #:com.gigamonkeys.json
-                #:parse-json)
-  (:import-from #:parse-number
-                #:parse-number)
+  (:import-from
+   #:dexador)
+  (:import-from
+   #:quri
+   #:url-encode)
+  (:import-from
+   #:com.gigamonkeys.json
+   #:parse-json)
+  (:import-from
+   #:parse-number
+   #:parse-number)
   (:export
-   #:geocoder
-   #:geocode
-   #:reverse-geocode
-   #:osm-geocoder
    #:place
    #:name
    #:lat
-   #:lon))
+   #:lon
+   #:geocoder
+   #:geocode*
+   #:reverse-geocode*
+   #:osm-geocoder
+   #:*geocoder*
+   #:geocode
+   #:reverse-geocode))
 
 (in-package #:geocoder/geocoder)
+
+(defclass place ()
+  ((name :initform nil :reader name)
+   (lat :initform nil :reader lat)
+   (lon :initform nil :reader lon)
+   (raw :initarg :raw :reader raw)))
+
+(defmethod print-object ((place place) stream)
+  (print-unreadable-object (place stream :type t)
+    (with-slots (name lat lon) place
+      (format stream "~S~@[ (~F ~F)~]" name lat lon)))
+  place)
 
 (defclass geocoder ()
   ())
 
-(defgeneric geocode (geocoder value))
+(defgeneric geocode* (geocoder value))
 
-(defgeneric reverse-geocode (geocoder query))
+(defgeneric reverse-geocode* (geocoder query))
 
 ;; OpenStreetMap geocoder
 
@@ -42,7 +61,7 @@
 (defmethod reverse-endpoint ((geocoder osm-geocoder))
   (concatenate 'string (endpoint geocoder) "/reverse"))
 
-(defmethod geocode ((geocoder osm-geocoder) value)
+(defmethod geocode* ((geocoder osm-geocoder) value)
   (parse-response geocoder
                   (http-request (search-endpoint geocoder)
                                 (geocode-params geocoder value))))
@@ -81,18 +100,6 @@
                                         :space-to-plus t)
                             out)))))
 
-(defclass place ()
-  ((name :initform nil :reader name)
-   (lat :initform nil :reader lat)
-   (lon :initform nil :reader lon)
-   (raw :initarg :raw :reader raw)))
-
-(defmethod print-object ((place place) stream)
-  (print-unreadable-object (place stream :type t)
-    (with-slots (name lat lon) place
-      (format stream "~S~@[ (~F ~F)~]" name lat lon)))
-  place)
-
 (defmethod parse-response ((geocoder osm-geocoder) response)
   (let ((json (parse-json response)))
     (if (vectorp json)
@@ -111,7 +118,18 @@
                       (setf lon (parse-number value :float-format 'double-float))))))
     place))
 
-(defmethod reverse-geocode ((geocoder osm-geocoder) query)
+(defmethod reverse-geocode* ((geocoder osm-geocoder) query)
   (parse-response geocoder
                   (http-request (reverse-endpoint geocoder)
                                 (geocode-params geocoder query))))
+
+;; Convenience
+
+(defvar *geocoder*
+  (make-instance 'osm-geocoder))
+
+(defun geocode (value &key (geocoder *geocoder*))
+  (geocode* geocoder value))
+
+(defun reverse-geocode (query &key (geocoder *geocoder*))
+  (reverse-geocode* geocoder query))
